@@ -1,4 +1,5 @@
 composer.phar
+composer.lock
 vendor/
 .idea/
 .foundation
@@ -9,6 +10,7 @@ library/Symfony/
 .settings/
 nbproject
 tests/reports
+build/
 *.phar
 *.7z
 *.jar
