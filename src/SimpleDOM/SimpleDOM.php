@@ -1387,6 +1387,15 @@ class SimpleDOM extends SimpleXMLElement
     }
 
     /**
+     * Remove a node
+     *
+     * @param $name
+     */
+    public function removeNode($name) {
+        unset($this->children()->$name);
+    }
+
+    /**
      *
      * http://stackoverflow.com/questions/2356144/php-duplicate-xml-node-using-simple-xml
      *
