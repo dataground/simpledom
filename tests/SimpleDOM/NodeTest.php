@@ -1,5 +1,5 @@
 <?php
-namespace SimpleDOM;
+use Dataground\SimpleDOM;
 
 /**
  * Class ParseTest
