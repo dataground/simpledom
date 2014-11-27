@@ -9,40 +9,41 @@ use DOMElement;
 use DOMNode;
 use DOMNodeList;
 use DOMText;
+use Exception;
 use InvalidArgumentException;
 use SimpleXMLElement;
-use XSLTProcessor;
 use XSLTCache;
+use XSLTProcessor;
 
-    /**
-     *
-     * Copyright 2009 The SimpleDOM authors
-     *
-     * Permission is hereby granted, free of charge, to any person obtaining a copy
-     * of this software and associated documentation files (the "Software"), to deal
-     * in the Software without restriction, including without limitation the rights
-     * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-     * copies of the Software, and to permit persons to whom the Software is
-     * furnished to do so, subject to the following conditions:
-     *
-     * The above copyright notice and this permission notice shall be included in
-     * all copies or substantial portions of the Software.
-     *
-     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-     * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-     * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-     * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-     * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-     * THE SOFTWARE.
+/**
+ *
+ * Copyright 2009 The SimpleDOM authors
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
 
-     */
+ */
 
-    /**
-     * @package SimpleDOM
-     * @version $Id: SimpleDOM.php 60 2010-04-01 06:34:58Z simpledom.dev $
-     * @link    $URL: https://simpledom.googlecode.com/svn/trunk/SimpleDOM.php $
-     */
+/**
+ * @package SimpleDOM
+ * @version $Id: SimpleDOM.php 60 2010-04-01 06:34:58Z simpledom.dev $
+ * @link    $URL: https://simpledom.googlecode.com/svn/trunk/SimpleDOM.php $
+ */
 
 
 /**
@@ -1064,5 +1065,416 @@ class SimpleDOM extends SimpleXMLElement
 
         return simplexml_import_dom($dom, __CLASS__);
     }
+
+
+    /**
+     * Fixed version of addchild allows & (ampersand) in input
+     * @param string $name
+     * @param string $value
+     * @param string $namespace
+     * @return static
+     */
+    public function addChild($name, $value = null, $namespace = null)
+    {
+        if (is_object($value)) {
+            return parent::addChild($name, $value, $namespace);
+        } elseif ($value !== null) {
+            $value = str_replace('&', '&amp;', $value);
+            return parent::addChild($name, $value, $namespace);
+        } else {
+            return parent::addChild($name, null, $namespace);
+        }
+    }
+
+    /**
+     * Get a node by attribute name and location in xpath
+     *
+     * @param string $strXpath
+     * @param string $strName
+     * @return static[] if node not found, otherwise the element
+     */
+    public function getNodeByName($strXpath, $strName)
+    {
+        $varResult = $this->xpath($strXpath . "[@name='" . $strName . "']");
+
+        if ($varResult !== false) {
+            // Get first element
+            return reset($varResult);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Clear a data node
+     *
+     */
+    public function clear()
+    {
+        dom_import_simplexml($this)->nodeValue = '';
+    }
+
+    /**
+     * Get a single element by xpath
+     * @param string $strXpathQuery
+     * @throws Exception
+     * @return static or NULL if not found
+     */
+    public function xpathSingle($strXpathQuery)
+    {
+        $arrResults = $this->xpath($strXpathQuery);
+
+        if ($arrResults === false) {
+            //throw new Exception('xpathElement returned an unspecified error on '.$strXpathQuery);
+            return null;
+        }
+
+        if (is_array($arrResults) && count($arrResults) == 0) {
+            return null;
+        } else {
+            if (count($arrResults) > 1) {
+                throw new Exception(
+                    'xpathSingle expects a single element as result, got ' . count($arrResults) . ' elements instead.'
+                );
+            } else {
+                return current($arrResults);
+            }
+        }
+    }
+
+    /**
+     * Get a nodevalue from an xpath query returning only one node (single)
+     *
+     * @param string $strXpathQuery
+     * @return static the returning element, NULL if not found, FALSE on error
+     */
+    public function xpathValue($strXpathQuery)
+    {
+
+        $objResult = $this->xpathSingle($strXpathQuery);
+
+        if ($objResult === false) {
+            return false;
+        } elseif ($objResult === null) {
+            return null;
+        } else {
+            return (string)$objResult;
+        }
+    }
+
+    /**
+     * Execute xpath query and index by attribute
+     *
+     * @param string $strXpathQuery
+     * @param string $strIndexAttribute
+     * @return static[]
+     */
+    public function xpathByAttribute($strXpathQuery, $strIndexAttribute = 'name')
+    {
+
+        $arrOut = array();
+        $objResult = $this->xpath($strXpathQuery);
+
+        foreach ($objResult as $intIndex => $objNode) {
+            $strIndex = (string)$objNode->attributes()->$strIndexAttribute;
+            $arrOut[$strIndex] = $objResult[$intIndex];
+        }
+
+        return $arrOut;
+    }
+
+    /**
+     *
+     * @param string $strXpathQuery
+     * @return int
+     */
+    public function xpathCount($strXpathQuery)
+    {
+
+        $arrElements = $this->xpath($strXpathQuery);
+
+        if ($arrElements === false) {
+            return 0;
+        } else {
+            return count($arrElements);
+        }
+    }
+
+    /**
+     * Build an array with references to subnodes of this xml element
+     * Indexed by an urified index attribute (standard 'name')
+     *
+     * @param string $strNodeName name of the subnode
+     * @param string $strIndexAttribute name of the attribute used as array index
+     * @return static[]
+     */
+    public function buildReferenceLookupTable($strNodeName, $strIndexAttribute = 'name')
+    {
+
+        $arrOut = array();
+
+        if (!isset($this->$strNodeName)) {
+            return array();
+        }
+
+        foreach ($this->$strNodeName as $objNode) {
+            $strIndex = (string)$objNode->attributes()->$strIndexAttribute;
+            $arrOut[$strIndex] = $objNode;
+        }
+
+        return $arrOut;
+    }
+
+    /**
+     * Get Parent Node
+     *
+     * @return static
+     */
+    public function getParent()
+    {
+        return current($this->xpath('parent::*'));
+    }
+
+    /**
+     * Get an attribute by name
+     *
+     * @param string $strName
+     * @param bool $varDefault
+     * @return bool|string
+     */
+    public function getAttribute($strName, $varDefault = false)
+    {
+        if (isset($this->attributes()->$strName) && (((string)$this->attributes()->$strName) !== '')) {
+            return (string)$this->attributes()->$strName;
+        } else {
+            return $varDefault;
+        }
+    }
+
+    /**
+     *  Get a boolean attribute value (value must either be 'true' or 'false')
+     * @param $strName
+     * @param bool $blnDefault
+     * @throws Exception
+     * @return bool
+     */
+    public function getBooleanAttribute($strName, $blnDefault = false)
+    {
+        $strValue = $this->getAttribute($strName, $blnDefault ? 'true' : 'false');
+        if (!in_array($strValue, array('true', 'false'))) {
+            throw new Exception(
+                'Boolean attribute illegal value: "' . $strValue . '" valid values are "true" or "false"'
+            );
+        } else {
+            return (($strValue == 'true') ? true : false);
+        }
+    }
+
+    /**
+     * Get an node by name
+     *
+     * @param string $strName
+     * @param bool $varDefault
+     * @return bool|string
+     */
+    public function getNode($strName, $varDefault = false)
+    {
+        $varResult = $this->$strName;
+
+        if (($varResult !== false) && ((string)$varResult !== '')) {
+            // Get first element
+            return (string)$varResult;
+        } else {
+            return $varDefault;
+        }
+    }
+
+    /**
+     * Set (or create) Attribute
+     *
+     * @param string $strName
+     * @param string $strValue
+     * @return string
+     */
+    public function setAttribute($strName, $strValue)
+    {
+        if (!isset($this->attributes()->$strName)) {
+            $this->addAttribute($strName, $strValue);
+            return $strName;
+        } else {
+            $this->attributes()->$strName = $strValue;
+            return $this->attributes()->$strName;
+        }
+    }
+
+    /**
+     * Propagate (copy) a boolean attribute (source) to all parents above it as (destination) attribute
+     * Default logical operator between current parent value and source value is AND
+     * so any parent (destination) attribute must be TRUE (considdered default) in order to alter it from source
+     * @param $strSource
+     * @param $strDestination
+     * @param null $strStopAtNode
+     * @param string $strMode
+     * @throws Exception
+     */
+    public function propagateBooleanAttribute($strSource, $strDestination, $strStopAtNode = null, $strMode = 'AND')
+    {
+        $blnValue = false;
+
+        // Is there a parent ?
+        if (($this->getParent() !== false) && ($this->getParent()->getName() !== $strStopAtNode)) {
+
+            if ($strMode == 'AND') {
+                $blnValue = ($this->getBooleanAttribute($strSource) && $this->getParent()->getBooleanAttribute(
+                        $strDestination,
+                        true
+                    ));
+            } elseif ($strMode == 'OR') {
+                $blnValue = ($this->getBooleanAttribute($strSource) || $this->getParent()->getBooleanAttribute(
+                        $strDestination,
+                        true
+                    ));
+            }
+
+            // Set it
+            $this->getParent()->setAttribute($strDestination, $blnValue ? 'true' : 'false');
+            $this->getParent()->propagateBooleanAttribute($strDestination, $strDestination, $strStopAtNode, $strMode);
+        }
+    }
+
+    /**
+     * Set (or create) Node
+     *
+     * @param string $strName
+     * @param string $varValue
+     * @return null|\static|\static[]
+     */
+    public function setNode($strName, $varValue = null)
+    {
+        if (!isset($this->children()->$strName)) {
+            if ($varValue === null) {
+                return $this->addChild($strName);
+            } else {
+                return $this->addChild($strName, $varValue);
+            }
+        } else {
+            if ($varValue === null) {
+                unset($this->children()->$strName);
+                return null;
+            } else {
+                $this->children()->$strName = (string)$varValue;
+                return $this->children()->$strName;
+            }
+        }
+    }
+
+    /**
+     *
+     * http://stackoverflow.com/questions/2356144/php-duplicate-xml-node-using-simple-xml
+     *
+     * public function copyChild($objSource, $objDestination) {
+     *
+     * $dom_thing = dom_import_simplexml($thing);
+     * $dom_node  = dom_import_simplexml($thing->node);
+     * $dom_new   = $dom_thing->appendChild($dom_node->cloneNode(TRUE));
+     * $new_node  = simplexml_import_dom($dom_new);
+     * }
+     * */
+
+    /**
+     *    Add missing nodes and attributes to an element from a strucure element
+     * Had to be written like this because clone does not work on SimpleXmlElements
+     *
+     * @param $objStructure
+     * @param $objElement
+     */
+    public function addMissing($objStructure, &$objElement)
+    {
+        // Set missing attributes
+        foreach ($objStructure->attributes() as $strName => $objAttribute) {
+            if (!isset($objElement->attributes()->$strName)) {
+                $objElement->addAttribute($strName, (string)$objAttribute);
+            }
+        }
+
+        // Add missing nodes
+        foreach ($objStructure->children() as $strName => $varNode) {
+            if (count($varNode) > 0) {
+                // Due to a PHP bug clone does not work
+                $objNode = $objElement->addChild($strName);
+                $this->addMissing($varNode, $objNode);
+            } else {
+                $objElement->addChild($strName, (string)$varNode);
+            }
+        }
+    }
+
+    /**
+     * Dump pretty XML
+     */
+    public function dump()
+    {
+        $dom = new DOMDocument('1.0');
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        $dom->loadXML($this->asXML());
+        return $dom->saveXML();
+    }
+
+    /**
+     * Return a string to be used as xpath attribute search string.
+     * This function is necessary because xpath can not by default find strings which contain a single AND a double quote.
+     * Usage:
+     *
+     * <code>
+     *     $object->xpath('element[\@name='.getXpathStringForAttributeValue.']');
+     * </code>
+     *
+     * @param $attributeValue
+     * @return string
+     */
+    public function getXpathStringForAttributeValue($attributeValue)
+    {
+        $hasApos = strpos($attributeValue, "'");
+        $hasQuote = strpos($attributeValue, '"');
+
+        if ($hasApos === false) {
+            return "'" . $attributeValue . "'";
+        }
+        if ($hasQuote === false) {
+            return '"' . $attributeValue . '"';
+        }
+
+        $result = 'concat(';
+        $currentArgument = '';
+        for ($pos = 0; $pos < strlen($attributeValue); $pos++) {
+            switch (substr($attributeValue, $pos, 1)) {
+                case "'":
+                    $result .= '"';
+                    $result .= $currentArgument;
+                    $result .= "'\",";
+                    $currentArgument = '';
+                    break;
+                case '"':
+                    $result .= "'";
+                    $result .= $currentArgument;
+                    $result .= "\"',";
+                    $currentArgument = '';
+                    break;
+                default:
+                    $currentArgument .= substr($attributeValue, $pos, 1);
+                    break;
+            }
+        }
+        if (strlen($currentArgument) === 0) {
+            $result = substr($result, 0, -1) . ')';
+        } else {
+            $result .= "'";
+            $result .= $currentArgument;
+            $result .= "')";
+        }
+        return $result;
+    }
+
     /**#@-*/
 }
