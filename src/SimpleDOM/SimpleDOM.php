@@ -66,6 +66,8 @@ function simpledom_load_file($filename)
 /**
  * Alias for simplexml_load_string()
  *
+ * Reported by goo...@svenpoeche.de, Nov 20, 2012
+ *
  * @param $string
  * @return    SimpleDOM
  */
@@ -78,6 +80,22 @@ function simpledom_load_string($string)
     }
 
     return call_user_func_array('simplexml_load_string', $args);
+}
+
+/**
+ * Alias for simplexml_import_dom()
+ *
+ * @return    SimpleDOM
+ */
+function simpledom_import_dom($string)
+{
+    $args = func_get_args();
+
+    if (isset($args[0]) && !isset($args[1])) {
+        $args[1] = 'SimpleDOM';
+    }
+
+    return call_user_func_array('simplexml_import_dom', $args);
 }
 
 /**
@@ -1427,7 +1445,7 @@ class SimpleDOM extends SimpleXMLElement
      * Usage:
      *
      * <code>
-     *     $object->xpath('element[\@name='.getXpathStringForAttributeValue.']');
+     *     $object->xpath('element[\@name='.getXpathStringForAttributeValue('test').']');
      * </code>
      *
      * @param $attributeValue
