@@ -1,5 +1,5 @@
 {
-    "name": "Dataground/SimpleDOM",
+    "name": "dataground/simpledom",
     "description": "SimpleXML extension",
     "keywords": ["xml", "simplexml", "dom"],
     "type": "library",
