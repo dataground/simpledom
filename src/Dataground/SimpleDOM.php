@@ -1,5 +1,5 @@
 <?php
-namespace SimpleDOM;
+namespace Dataground;
 
 use BadMethodCallException;
 use DOMAttr;
