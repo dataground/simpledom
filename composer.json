@@ -16,8 +16,8 @@
         "phpunit/phpunit": "~4.0"
     },
     "autoload": {
-        "psr-4": {
-            "SimpleDOM": "src/SimpleDOM"
+        "psr-0": {
+            "SimpleDOM": "src/"
         }
     },
     "extra": {
